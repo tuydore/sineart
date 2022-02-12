@@ -1,4 +1,5 @@
 use image::{GrayImage, Luma};
+use num::{Signed, ToPrimitive};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Point {
@@ -70,17 +71,29 @@ impl Slope {
 }
 
 trait Curve {
+    /// Type to use in error functions, returned by equation etc.
+    type T: Signed + PartialOrd + ToPrimitive;
+
     fn start(&self) -> &Point;
     fn stop(&self) -> &Point;
-    fn equation(&self, point: &Point) -> f64;
-    fn antialiased_threshold(&self) -> f64;
+
+    /// Implicit equation of curve, f(x, y) = 0.
+    fn equation(&self, point: &Point) -> Self::T;
+
+    /// Threshold for anti-aliasing, will set lines to 255 * equation(p) / threshold.
+    fn antialiased_threshold(&self) -> Self::T;
+
+    /// Value to set pixel to when using anti-aliasing.
     fn antialiased_value(&self, point: &Point) -> u8 {
         let value = self.equation(point).abs();
         let threshold = self.antialiased_threshold();
         if value > threshold {
             255
         } else {
-            (value * 255.0 / threshold) as u8
+            (value.to_u32().expect("could not convert value to u32") * 255
+                / threshold
+                    .to_u32()
+                    .expect("could not convert threshold to u32")) as u8
         }
     }
 }
@@ -116,13 +129,6 @@ impl<C: Curve> Drawable for C {
         while &current != self.stop() {
             let next = slope.next(&current);
 
-            println!(
-                "{:?}",
-                next.iter()
-                    .map(|p| self.antialiased_value(p))
-                    .collect::<Vec<u8>>()
-            );
-
             for p in next.iter() {
                 image.put_pixel(p.x as u32, p.y as u32, Luma([self.antialiased_value(p)]));
             }
@@ -141,20 +147,33 @@ struct AngledLine {
     stop: Point,
     dx: i32,
     dy: i32,
+    aa_threshold: i32,
 }
 
 impl AngledLine {
     fn new(start: Point, stop: Point) -> Self {
+        let dx = stop.x - start.x;
+        let dy = stop.y - start.y;
+        let aa_threshold: i32 = (dx.pow(2) + dy.pow(2))
+            .to_f64()
+            .expect("could not cast AA threshold to f64")
+            .sqrt()
+            .to_i32()
+            .expect("could not convert f64 -> i32");
+
         Self {
-            dx: stop.x - start.x,
-            dy: stop.y - start.y,
             start,
             stop,
+            dx,
+            dy,
+            aa_threshold,
         }
     }
 }
 
 impl Curve for AngledLine {
+    type T = i32;
+
     fn start(&self) -> &Point {
         &self.start
     }
@@ -163,12 +182,12 @@ impl Curve for AngledLine {
         &self.stop
     }
 
-    fn equation(&self, point: &Point) -> f64 {
-        (self.dx * (point.y - self.start.y) - (point.x - self.start.x) * self.dy) as f64
+    fn equation(&self, point: &Point) -> Self::T {
+        self.dx * (point.y - self.start.y) - (point.x - self.start.x) * self.dy
     }
 
-    fn antialiased_threshold(&self) -> f64 {
-        ((self.dx.pow(2) + self.dy.pow(2)) as f64).sqrt()
+    fn antialiased_threshold(&self) -> Self::T {
+        self.aa_threshold
     }
 }
 
