@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use image::{GrayImage, Luma};
 use num::{Signed, ToPrimitive};
 
@@ -13,10 +15,28 @@ impl Point {
     }
 }
 
-trait Drawable {
-    fn draw(&self, image: &mut GrayImage);
+struct Canvas(GrayImage);
 
-    fn draw_antialiased(&self, image: &mut GrayImage);
+impl Canvas {
+    fn new(width: u32, height: u32) -> Self {
+        let mut img = GrayImage::new(width, height);
+        img.fill(255);
+        Self(img)
+    }
+
+    fn set(&mut self, x: u32, y: u32, value: u8) {
+        self.0.put_pixel(x, self.0.width() - y - 1, Luma([value]));
+    }
+
+    fn save<P: AsRef<Path>>(&self, path: P) {
+        self.0.save(path).expect("failed to save image");
+    }
+}
+
+trait Drawable {
+    fn draw(&self, canvas: &mut Canvas);
+
+    fn draw_antialiased(&self, canvas: &mut Canvas);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -99,12 +119,12 @@ trait Curve {
 }
 
 impl<C: Curve> Drawable for C {
-    fn draw(&self, image: &mut GrayImage) {
+    fn draw(&self, canvas: &mut Canvas) {
         let mut current = *self.start();
         let slope = Slope::between(self.start(), self.stop());
 
         while &current != self.stop() {
-            image.put_pixel(current.x as u32, current.y as u32, Luma([0]));
+            canvas.set(current.x as u32, current.y as u32, 0);
             current = slope
                 .next(&current)
                 .into_iter()
@@ -113,24 +133,24 @@ impl<C: Curve> Drawable for C {
                 .map(|(p, _)| p)
                 .expect("no viable next point found");
         }
-        image.put_pixel(current.x as u32, current.y as u32, Luma([0]));
+        canvas.set(current.x as u32, current.y as u32, 0);
     }
 
-    fn draw_antialiased(&self, image: &mut GrayImage) {
+    fn draw_antialiased(&self, canvas: &mut Canvas) {
         let mut current = *self.start();
         let slope = Slope::between(self.start(), self.stop());
 
-        image.put_pixel(
+        canvas.set(
             current.x as u32,
             current.y as u32,
-            Luma([self.antialiased_value(&current)]),
+            self.antialiased_value(&current),
         );
 
         while &current != self.stop() {
             let next = slope.next(&current);
 
             for p in next.iter() {
-                image.put_pixel(p.x as u32, p.y as u32, Luma([self.antialiased_value(p)]));
+                canvas.set(p.x as u32, p.y as u32, self.antialiased_value(p));
             }
             current = next
                 .into_iter()
@@ -228,10 +248,9 @@ mod tests {
         #[ignore = "visual check"]
         fn angled_line() {
             let aline = AngledLine::new(Point::new(0, 0), Point::new(150, 100));
-            let mut img = GrayImage::new(200, 200);
-            img.fill(255);
+            let mut img = Canvas::new(200, 200);
             aline.draw_antialiased(&mut img);
-            img.save("test.bmp").unwrap();
+            img.save("test.bmp");
             dbg!(aline.antialiased_threshold());
         }
     }
