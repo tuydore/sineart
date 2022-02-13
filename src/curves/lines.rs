@@ -62,10 +62,10 @@ mod tests {
     #[test]
     #[ignore = "visual check"]
     fn angled_line() {
-        let aline = AngledLine::new(Point::new(0, 0), Point::new(150, 100));
-        let mut img = Canvas::new([600; 2], [400; 2]);
+        let aline = AngledLine::new(Point::new(0, 0), Point::new(549, 549));
+        let mut img = Canvas::new([600; 2], [550; 2]);
         aline.draw_antialiased(&mut img);
-        img.save("test.bmp");
+        img.save("tests/test.bmp");
         dbg!(aline.antialiased_threshold());
     }
 }

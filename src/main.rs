@@ -1,7 +1,7 @@
 use canvas::Canvas;
 use curves::{sine::Sine, Drawable, Point};
-use image::{io::Reader as ImageReader, GrayImage};
-use std::path::Path;
+use image::{imageops::FilterType, io::Reader as ImageReader, GrayImage};
+use std::{cmp::max, path::Path};
 
 mod canvas;
 mod curves;
@@ -12,33 +12,25 @@ struct SineArt {
 }
 
 impl SineArt {
-    fn new<P: AsRef<Path>>(nwidth: u32, nheight: u32, source_image: P, canvas: Canvas) -> Self {
-        let source = ImageReader::open(source_image)
-            .expect("could not open source image")
-            .decode()
-            .expect("could not decode source image")
-            .resize_exact(nwidth, nheight, image::imageops::FilterType::Gaussian)
-            .into_luma8();
-        Self { source, canvas }
-    }
-
-    fn from_source_and_border<P: AsRef<Path>>(
-        nwidth: u32,
-        nheight: u32,
-        source_image: P,
-        border_percent: u32,
-    ) -> Self {
-        let source = ImageReader::open(source_image)
+    fn new<P: AsRef<Path>>(nw: u32, nh: u32, source: P, downscale: u32) -> Self {
+        let mut source = ImageReader::open(source)
             .expect("could not open source image")
             .decode()
             .expect("could not decode source image");
 
-        let full_width = source.width() * (100 + border_percent) / 100;
-        let full_height = source.height() * (100 + border_percent) / 100;
-        let canvas = Canvas::new([full_height, full_width], [source.height(), source.width()]);
+        let nw_scale = nw * 4;
+
+        let target_width = (source.width() * downscale / 100 / nw_scale + 1) * nw_scale + 1;
+        let target_height = (source.height() * target_width) / source.width();
+
+        let canvas = Canvas::new(
+            [target_height * 105 / 100, target_width * 105 / 100],
+            [target_height, target_width],
+        );
+
         Self {
             source: source
-                .resize_exact(nwidth, nheight, image::imageops::FilterType::Gaussian)
+                .resize_exact(nw, nh, FilterType::Triangle)
                 .into_luma8(),
             canvas,
         }
@@ -49,7 +41,7 @@ impl SineArt {
     }
 
     fn cell_width(&self) -> u32 {
-        self.canvas.iw / self.source.width()
+        (self.canvas.iw - 1) / self.source.width()
     }
 
     /// Return the max amplitude a sine wave can have. A_max = 0.9 x cell_height / 2.
@@ -58,12 +50,10 @@ impl SineArt {
     }
 
     fn quarter_wavelength(&self) -> u32 {
-        // TODO: add division checks
         self.cell_width() / 4
     }
 
     fn draw_on_canvas(&mut self) {
-        let ch = self.cell_height();
         let cw = self.cell_width();
         let qwave = self.quarter_wavelength();
         let amax = self.max_amplitude();
@@ -71,10 +61,13 @@ impl SineArt {
         for img_y in 0..self.source.height() {
             for img_x in 0..self.source.width() {
                 let x = cw * img_x;
-                let y = ch / 2 + ch * (self.source.height() - img_y - 1);
+
+                // calculate every time to avoid period falling behind
+                let y = (self.canvas.ih / 2 + self.canvas.ih * (self.source.height() - img_y - 1))
+                    / self.source.height();
                 let a = amax - amax * self.source.get_pixel(img_x, img_y).0[0] as u32 / 255;
                 let sine = Sine::new(Point::new(x, y), a, qwave);
-                sine.draw(&mut self.canvas)
+                sine.draw_antialiased(&mut self.canvas)
             }
         }
     }
@@ -93,7 +86,12 @@ mod tests {
     #[test]
     #[ignore = "visual check"]
     fn logo() {
-        let mut art = SineArt::from_source_and_border(70, 35, "tests/lincoln.jpeg", 5);
+        let mut art = SineArt::new(70, 35, "tests/lincoln.jpeg", 25);
+        dbg!(
+            art.quarter_wavelength() * 4,
+            art.cell_width(),
+            art.canvas.iw
+        );
         art.draw_on_canvas();
         art.canvas.save("tests/lincoln_sine.jpg");
     }

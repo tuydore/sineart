@@ -202,7 +202,7 @@ impl Curve for QuarterSine {
     }
 
     fn antialiased_threshold(&self) -> Self::T {
-        PI
+        3.0 * PI / 2.0
     }
 
     fn equation(&self, point: &Point) -> Self::T {
