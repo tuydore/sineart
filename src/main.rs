@@ -27,8 +27,12 @@ struct Args {
     scale: u32,
 
     /// Thickness of line in pixels.
-    #[clap(short = 't', long = "thickness", default_value = "6")]
+    #[clap(long = "thickness", default_value = "6")]
     thickness: u32,
+
+    /// Threshold for white values, so sine waves do not end up completely flat.
+    #[clap(long = "threshold", default_value = "255")]
+    threshold: u8,
 
     /// Output image path. Defaults to $INPUT_sine.jpg.
     #[clap(short = 'o', long = "output")]
@@ -47,7 +51,13 @@ fn main() {
                 .expect("input file stem is not valid unicode")
         ))
     });
-    let mut plotter = Plotter::new(args.hcells, args.vcells, args.input, args.scale);
+    let mut plotter = Plotter::new(
+        args.hcells,
+        args.vcells,
+        args.input,
+        args.scale,
+        args.threshold,
+    );
     plotter.draw(args.thickness);
     plotter.canvas.save(output);
 }

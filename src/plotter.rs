@@ -3,17 +3,18 @@ use crate::{
     curves::{sine::Sine, Drawable, Point},
 };
 use image::{imageops::FilterType, io::Reader as ImageReader, GrayImage};
-use std::path::Path;
+use std::{cmp::min, path::Path};
 
 /// Core crate component, takes a source image, resizes it to a number of cells, and plots those
 /// cells to the canvas using sine waves.
 pub struct Plotter {
     source: GrayImage,
     pub canvas: Canvas,
+    threshold: u8,
 }
 
 impl Plotter {
-    pub fn new<P: AsRef<Path>>(nw: u32, nh: u32, source: P, scale: u32) -> Self {
+    pub fn new<P: AsRef<Path>>(nw: u32, nh: u32, source: P, scale: u32, threshold: u8) -> Self {
         let source = ImageReader::open(source)
             .expect("could not open source image")
             .decode()
@@ -34,6 +35,7 @@ impl Plotter {
                 .resize_exact(nw, nh, FilterType::Triangle)
                 .into_luma8(),
             canvas,
+            threshold,
         }
     }
 
@@ -59,6 +61,10 @@ impl Plotter {
             / self.source.height()
     }
 
+    fn get_pixel_as_u32(&self, x: u32, y: u32) -> u32 {
+        min(self.source.get_pixel(x, y).0[0], self.threshold) as u32
+    }
+
     pub fn draw(&mut self, thickness: u32) {
         let cw = self.cell_width();
         let qwave = self.quarter_wavelength();
@@ -74,7 +80,7 @@ impl Plotter {
 
                 // calculate every time to avoid period falling behind
                 y = self.cell_to_sine_start_y(cell_y);
-                a = amax - amax * self.source.get_pixel(cell_x, cell_y).0[0] as u32 / 255;
+                a = amax - amax * self.get_pixel_as_u32(cell_x, cell_y) / 255;
                 sine = Sine::new(Point::new(x, y), a, qwave);
                 sine.draw_thick(&mut self.canvas, thickness)
             }
@@ -90,7 +96,7 @@ mod tests {
     #[test]
     #[ignore = "visual check"]
     fn logo() {
-        let mut plotter = Plotter::new(50, 50, "tests/lincoln.jpeg", 100);
+        let mut plotter = Plotter::new(50, 50, "tests/lincoln.jpeg", 100, 255);
         plotter.draw(4);
         plotter.canvas.save("tests/lincoln_sine.jpg");
     }
