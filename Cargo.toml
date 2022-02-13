@@ -1,5 +1,7 @@
 [package]
 edition = "2021"
+license = "MIT"
+license-file = "LICENSE"
 name = "sineart"
 version = "1.0.0"
 
