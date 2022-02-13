@@ -27,11 +27,11 @@ struct Args {
     scale: u32,
 
     /// Thickness of line in pixels.
-    #[clap(long = "thickness", default_value = "6")]
+    #[clap(long = "thickness", default_value = "4")]
     thickness: u32,
 
     /// Threshold for white values, so sine waves do not end up completely flat.
-    #[clap(long = "threshold", default_value = "255")]
+    #[clap(long = "threshold", default_value = "200")]
     threshold: u8,
 
     /// Output image path. Defaults to $INPUT_sine.jpg.
