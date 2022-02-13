@@ -24,9 +24,10 @@ impl Plotter {
 
         let target_width = (source.width() * scale / 100 / nw_scale + 1) * nw_scale + 1;
         let target_height = (source.height() * target_width) / source.width();
+        let border = min(target_height * 5 / 100, target_width * 5 / 100);
 
         let canvas = Canvas::new(
-            [target_height * 105 / 100, target_width * 105 / 100],
+            [target_height + border, target_width + border],
             [target_height, target_width],
         );
 
