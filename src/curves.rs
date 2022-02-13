@@ -1,7 +1,9 @@
-use std::path::Path;
+mod lines;
+mod sine;
 
 use image::{GrayImage, Luma};
 use num::{Signed, ToPrimitive};
+use std::{fmt::Display, path::Path};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Point {
@@ -25,7 +27,7 @@ impl Canvas {
     }
 
     fn set(&mut self, x: u32, y: u32, value: u8) {
-        self.0.put_pixel(x, self.0.width() - y - 1, Luma([value]));
+        self.0.put_pixel(x, self.0.height() - y - 1, Luma([value]));
     }
 
     fn save<P: AsRef<Path>>(&self, path: P) {
@@ -92,7 +94,7 @@ impl Slope {
 
 trait Curve {
     /// Type to use in error functions, returned by equation etc.
-    type T: Signed + PartialOrd + ToPrimitive;
+    type T: Signed + PartialOrd + ToPrimitive + Display + core::fmt::Debug;
 
     fn start(&self) -> &Point;
     fn stop(&self) -> &Point;
@@ -149,6 +151,11 @@ impl<C: Curve> Drawable for C {
         while &current != self.stop() {
             let next = slope.next(&current);
 
+            // println!(
+            //     "{:?}",
+            //     next.iter().map(|p| self.equation(p)).collect::<Vec<_>>()
+            // );
+
             for p in next.iter() {
                 canvas.set(p.x as u32, p.y as u32, self.antialiased_value(p));
             }
@@ -159,55 +166,7 @@ impl<C: Curve> Drawable for C {
                 .map(|(p, _)| p)
                 .expect("no viable next point found");
         }
-    }
-}
-
-struct AngledLine {
-    start: Point,
-    stop: Point,
-    dx: i32,
-    dy: i32,
-    aa_threshold: i32,
-}
-
-impl AngledLine {
-    fn new(start: Point, stop: Point) -> Self {
-        let dx = stop.x - start.x;
-        let dy = stop.y - start.y;
-        let aa_threshold: i32 = (dx.pow(2) + dy.pow(2))
-            .to_f64()
-            .expect("could not cast AA threshold to f64")
-            .sqrt()
-            .to_i32()
-            .expect("could not convert f64 -> i32");
-
-        Self {
-            start,
-            stop,
-            dx,
-            dy,
-            aa_threshold,
-        }
-    }
-}
-
-impl Curve for AngledLine {
-    type T = i32;
-
-    fn start(&self) -> &Point {
-        &self.start
-    }
-
-    fn stop(&self) -> &Point {
-        &self.stop
-    }
-
-    fn equation(&self, point: &Point) -> Self::T {
-        self.dx * (point.y - self.start.y) - (point.x - self.start.x) * self.dy
-    }
-
-    fn antialiased_threshold(&self) -> Self::T {
-        self.aa_threshold
+        // println!("{}", self.antialiased_threshold());
     }
 }
 
@@ -238,20 +197,6 @@ mod tests {
                 slope.next(&point),
                 [Point::new(0, 1), Point::new(1, 1), Point::new(1, 0)]
             )
-        }
-    }
-
-    mod drawing {
-        use super::*;
-
-        #[test]
-        #[ignore = "visual check"]
-        fn angled_line() {
-            let aline = AngledLine::new(Point::new(0, 0), Point::new(150, 100));
-            let mut img = Canvas::new(200, 200);
-            aline.draw_antialiased(&mut img);
-            img.save("test.bmp");
-            dbg!(aline.antialiased_threshold());
         }
     }
 }
