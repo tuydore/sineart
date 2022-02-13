@@ -22,6 +22,8 @@ pub trait Drawable {
     fn draw(&self, canvas: &mut impl XYDrawable);
 
     fn draw_antialiased(&self, canvas: &mut impl XYDrawable);
+
+    fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -75,7 +77,7 @@ impl Slope {
     }
 }
 
-trait Curve {
+pub trait Curve {
     /// Type to use in error functions, returned by equation etc.
     type T: Signed + PartialOrd + ToPrimitive + Display + core::fmt::Debug;
 
@@ -146,6 +148,23 @@ impl<C: Curve> Drawable for C {
                 .expect("no viable next point found");
         }
         // println!("{}", self.antialiased_threshold());
+    }
+
+    fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32) {
+        let mut current = *self.start();
+        let slope = Slope::between(self.start(), self.stop());
+
+        while &current != self.stop() {
+            canvas.set_horizontal_line(&current, 0, thickness);
+            current = slope
+                .next(&current)
+                .into_iter()
+                .map(|p| (p, self.equation(&p).abs()))
+                .min_by(|(_, a), (_, b)| a.partial_cmp(b).expect("NaN encountered"))
+                .map(|(p, _)| p)
+                .expect("no viable next point found");
+        }
+        canvas.set_horizontal_line(&current, 0, thickness);
     }
 }
 

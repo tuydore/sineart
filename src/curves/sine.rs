@@ -34,7 +34,7 @@ pub struct Sine {
     quarter_wavelength: u32,
 }
 
-struct SineWave {
+pub struct SineWave {
     start: Point,
     amplitude: u32,
     quarter_wavelength: u32,
@@ -54,6 +54,13 @@ impl SineWave {
             quarter_wavelength,
             num_oscillations,
         }
+    }
+
+    pub fn stop(&self) -> Point {
+        Point::new(
+            self.start.x,
+            self.start.y + (self.num_oscillations as u32) * self.quarter_wavelength * 4,
+        )
     }
 }
 
@@ -75,6 +82,15 @@ impl Drawable for SineWave {
             sine.draw_antialiased(canvas);
         }
     }
+
+    fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32) {
+        let mut sine = Sine::new(self.start, self.amplitude, self.quarter_wavelength);
+        sine.draw_thick(canvas, thickness);
+        for _ in 0..self.num_oscillations {
+            sine = sine.next();
+            sine.draw_thick(canvas, thickness);
+        }
+    }
 }
 
 impl Sine {
@@ -87,7 +103,7 @@ impl Sine {
     }
 
     /// Stopping point of the sine.
-    fn stop(&self) -> Point {
+    pub fn stop(&self) -> Point {
         Point::new(self.start.x + 4 * self.quarter_wavelength, self.start.y)
     }
 
@@ -137,6 +153,12 @@ impl Drawable for Sine {
     fn draw_antialiased(&self, canvas: &mut impl XYDrawable) {
         for quarter in self.quarters().iter() {
             quarter.draw_antialiased(canvas);
+        }
+    }
+
+    fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32) {
+        for quarter in self.quarters().iter() {
+            quarter.draw_thick(canvas, thickness);
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::{Curve, Point};
+use super::{Curve, Drawable, Point};
 use num::ToPrimitive;
 
 struct AngledLine {

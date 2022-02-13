@@ -53,21 +53,29 @@ impl SineArt {
         self.cell_width() / 4
     }
 
-    fn draw_on_canvas(&mut self) {
+    fn cell_to_sine_start_y(&self, cell_y: u32) -> u32 {
+        (self.canvas.ih / 2 + self.canvas.ih * (self.source.height() - cell_y - 1))
+            / self.source.height()
+    }
+
+    fn draw_on_canvas(&mut self, thickness: u32) {
         let cw = self.cell_width();
         let qwave = self.quarter_wavelength();
         let amax = self.max_amplitude();
+        let mut x: u32;
+        let mut y: u32;
+        let mut a: u32;
+        let mut sine: Sine;
 
-        for img_y in 0..self.source.height() {
-            for img_x in 0..self.source.width() {
-                let x = cw * img_x;
+        for cell_y in 0..self.source.height() {
+            for cell_x in 0..self.source.width() {
+                x = cw * cell_x;
 
                 // calculate every time to avoid period falling behind
-                let y = (self.canvas.ih / 2 + self.canvas.ih * (self.source.height() - img_y - 1))
-                    / self.source.height();
-                let a = amax - amax * self.source.get_pixel(img_x, img_y).0[0] as u32 / 255;
-                let sine = Sine::new(Point::new(x, y), a, qwave);
-                sine.draw_antialiased(&mut self.canvas)
+                y = self.cell_to_sine_start_y(cell_y);
+                a = amax - amax * self.source.get_pixel(cell_x, cell_y).0[0] as u32 / 255;
+                sine = Sine::new(Point::new(x, y), a, qwave);
+                sine.draw_thick(&mut self.canvas, thickness)
             }
         }
     }
@@ -86,13 +94,13 @@ mod tests {
     #[test]
     #[ignore = "visual check"]
     fn logo() {
-        let mut art = SineArt::new(70, 35, "tests/lincoln.jpeg", 25);
+        let mut art = SineArt::new(50, 50, "tests/lincoln.jpeg", 100);
         dbg!(
             art.quarter_wavelength() * 4,
             art.cell_width(),
             art.canvas.iw
         );
-        art.draw_on_canvas();
+        art.draw_on_canvas(4);
         art.canvas.save("tests/lincoln_sine.jpg");
     }
 }

@@ -11,6 +11,18 @@ pub trait XYDrawable {
         self.set_xy(point.x, point.y, value);
     }
 
+    fn set_vertical_line(&mut self, point: &Point, value: u8, extent: u32) {
+        for y in point.y.saturating_sub(extent)..=point.y + extent {
+            self.set_xy(point.x, y, value)
+        }
+    }
+
+    fn set_horizontal_line(&mut self, point: &Point, value: u8, extent: u32) {
+        for x in point.x.saturating_sub(extent)..=point.x + extent {
+            self.set_xy(x, point.y, value)
+        }
+    }
+
     /// Save the drawable to disk as an image.
     fn save<P: AsRef<Path>>(&self, path: P);
 }
