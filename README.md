@@ -5,7 +5,7 @@ Inspired by Reddit user [/u/tfoust10](https://www.reddit.com/user/tfoust10)'s [a
 
 ## Example
 Input:
-![input](./example/lincoln.jpeg)
+![input](https://upload.wikimedia.org/wikipedia/commons/4/44/Abraham_Lincoln_head_on_shoulders_photo_portrait.jpg)
 *source: https://upload.wikimedia.org/wikipedia/commons/4/44/Abraham_Lincoln_head_on_shoulders_photo_portrait.jpg*
 
 Output:
