@@ -15,11 +15,11 @@ struct Args {
     input: PathBuf,
 
     /// Number of rows of sine waves.
-    #[clap(short = 'i', default_value = "50")]
+    #[clap(short = 'r', long = "rows", default_value = "50")]
     vcells: u32,
 
     /// Number of sine oscillations.
-    #[clap(short = 'j', default_value = "50")]
+    #[clap(short = 'c', long = "cols", default_value = "50")]
     hcells: u32,
 
     /// Percentage scaling of image resolution.
@@ -27,7 +27,7 @@ struct Args {
     scale: u32,
 
     /// Thickness of line in pixels.
-    #[clap(short = 't', long = "thickness", default_value = "4")]
+    #[clap(short = 't', long = "thickness", default_value = "6")]
     thickness: u32,
 
     /// Output image path. Defaults to $INPUT_sine.jpg.
