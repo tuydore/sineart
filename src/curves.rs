@@ -1,5 +1,5 @@
-mod lines;
-mod sine;
+pub mod lines;
+pub mod sine;
 
 use num::{Signed, ToPrimitive};
 use std::fmt::Display;
@@ -13,12 +13,12 @@ pub struct Point {
 }
 
 impl Point {
-    fn new(x: u32, y: u32) -> Self {
+    pub fn new(x: u32, y: u32) -> Self {
         Self { x, y }
     }
 }
 
-trait Drawable {
+pub trait Drawable {
     fn draw(&self, canvas: &mut impl XYDrawable);
 
     fn draw_antialiased(&self, canvas: &mut impl XYDrawable);
@@ -169,7 +169,7 @@ mod tests {
         }
 
         #[test]
-        fn next() { 
+        fn next() {
             let point = Point::new(0, 0);
             let slope = Slope::NorthEast;
             assert_eq!(

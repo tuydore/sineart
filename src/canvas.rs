@@ -18,17 +18,17 @@ pub trait XYDrawable {
 #[derive(Debug, Clone)]
 pub struct Canvas {
     /// Full width of image, in pixels.
-    fw: u32,
+    pub fw: u32,
     /// Full height of image, in pixels.
-    fh: u32,
+    pub fh: u32,
     /// Inner width of image, in pixels.
-    iw: u32,
+    pub iw: u32,
     /// Inner height of image, in pixels.
-    ih: u32,
+    pub ih: u32,
     /// Plotting offset width, when asking to set P(x, y), this must be in the inner image.
-    ow: u32,
+    pub ow: u32,
     /// Plotting offset height, when asking to set P(x, y), this must be in the inner image.
-    oh: u32,
+    pub oh: u32,
     /// Image buffer.
     image: GrayImage,
 }

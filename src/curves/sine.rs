@@ -28,7 +28,7 @@ struct QuarterSine {
     quarter_wavelength: f64,
 }
 
-struct Sine {
+pub struct Sine {
     start: Point,
     amplitude: u32,
     quarter_wavelength: u32,
@@ -78,7 +78,7 @@ impl Drawable for SineWave {
 }
 
 impl Sine {
-    fn new(start: Point, amplitude: u32, quarter_wavelength: u32) -> Self {
+    pub fn new(start: Point, amplitude: u32, quarter_wavelength: u32) -> Self {
         Self {
             start,
             amplitude,
