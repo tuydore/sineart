@@ -14,7 +14,7 @@ Output:
 ## CLI Usage
 ```txt
 sineart 1.0.0
-Plots images as sinewave art, inspired by /u/tfoust10's Reddit posts
+Plots images as sinewave art, inspired by /u/tfoust10's artwork on Reddit.
 
 USAGE:
     sineart [OPTIONS] <INPUT>
