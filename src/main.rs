@@ -1,3 +1,4 @@
+mod canvas;
 mod curves;
 
 fn main() {

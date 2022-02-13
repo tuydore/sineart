@@ -1,44 +1,27 @@
 mod lines;
 mod sine;
 
-use image::{GrayImage, Luma};
 use num::{Signed, ToPrimitive};
-use std::{fmt::Display, path::Path};
+use std::fmt::Display;
+
+use crate::canvas::{Canvas, XYDrawable};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct Point {
-    x: i32,
-    y: i32,
+pub struct Point {
+    pub x: u32,
+    pub y: u32,
 }
 
 impl Point {
-    fn new(x: i32, y: i32) -> Self {
+    fn new(x: u32, y: u32) -> Self {
         Self { x, y }
     }
 }
 
-struct Canvas(GrayImage);
-
-impl Canvas {
-    fn new(width: u32, height: u32) -> Self {
-        let mut img = GrayImage::new(width, height);
-        img.fill(255);
-        Self(img)
-    }
-
-    fn set(&mut self, x: u32, y: u32, value: u8) {
-        self.0.put_pixel(x, self.0.height() - y - 1, Luma([value]));
-    }
-
-    fn save<P: AsRef<Path>>(&self, path: P) {
-        self.0.save(path).expect("failed to save image");
-    }
-}
-
 trait Drawable {
-    fn draw(&self, canvas: &mut Canvas);
+    fn draw(&self, canvas: &mut impl XYDrawable);
 
-    fn draw_antialiased(&self, canvas: &mut Canvas);
+    fn draw_antialiased(&self, canvas: &mut impl XYDrawable);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -121,12 +104,12 @@ trait Curve {
 }
 
 impl<C: Curve> Drawable for C {
-    fn draw(&self, canvas: &mut Canvas) {
+    fn draw(&self, canvas: &mut impl XYDrawable) {
         let mut current = *self.start();
         let slope = Slope::between(self.start(), self.stop());
 
         while &current != self.stop() {
-            canvas.set(current.x as u32, current.y as u32, 0);
+            canvas.set_point(&current, 0);
             current = slope
                 .next(&current)
                 .into_iter()
@@ -135,18 +118,14 @@ impl<C: Curve> Drawable for C {
                 .map(|(p, _)| p)
                 .expect("no viable next point found");
         }
-        canvas.set(current.x as u32, current.y as u32, 0);
+        canvas.set_point(&current, 0);
     }
 
-    fn draw_antialiased(&self, canvas: &mut Canvas) {
+    fn draw_antialiased(&self, canvas: &mut impl XYDrawable) {
         let mut current = *self.start();
         let slope = Slope::between(self.start(), self.stop());
 
-        canvas.set(
-            current.x as u32,
-            current.y as u32,
-            self.antialiased_value(&current),
-        );
+        canvas.set_point(&current, self.antialiased_value(&current));
 
         while &current != self.stop() {
             let next = slope.next(&current);
@@ -157,7 +136,7 @@ impl<C: Curve> Drawable for C {
             // );
 
             for p in next.iter() {
-                canvas.set(p.x as u32, p.y as u32, self.antialiased_value(p));
+                canvas.set_point(p, self.antialiased_value(p));
             }
             current = next
                 .into_iter()
@@ -190,7 +169,7 @@ mod tests {
         }
 
         #[test]
-        fn next() {
+        fn next() { 
             let point = Point::new(0, 0);
             let slope = Slope::NorthEast;
             assert_eq!(

@@ -11,8 +11,8 @@ struct AngledLine {
 
 impl AngledLine {
     fn new(start: Point, stop: Point) -> Self {
-        let dx = stop.x - start.x;
-        let dy = stop.y - start.y;
+        let dx = stop.x as i32 - start.x as i32;
+        let dy = stop.y as i32 - start.y as i32;
         let aa_threshold: i32 = (dx.pow(2) + dy.pow(2))
             .to_f64()
             .expect("could not cast AA threshold to f64")
@@ -42,7 +42,8 @@ impl Curve for AngledLine {
     }
 
     fn equation(&self, point: &Point) -> Self::T {
-        self.dx * (point.y - self.start.y) - (point.x - self.start.x) * self.dy
+        self.dx * (point.y as i32 - self.start.y as i32)
+            - (point.x as i32 - self.start.x as i32) * self.dy
     }
 
     fn antialiased_threshold(&self) -> Self::T {
@@ -53,13 +54,16 @@ impl Curve for AngledLine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::curves::{Canvas, Drawable};
+    use crate::{
+        canvas::XYDrawable,
+        curves::{Canvas, Drawable},
+    };
 
     #[test]
     #[ignore = "visual check"]
     fn angled_line() {
         let aline = AngledLine::new(Point::new(0, 0), Point::new(150, 100));
-        let mut img = Canvas::new(200, 200);
+        let mut img = Canvas::new([600; 2], [400; 2]);
         aline.draw_antialiased(&mut img);
         img.save("test.bmp");
         dbg!(aline.antialiased_threshold());
