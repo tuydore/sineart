@@ -13,7 +13,7 @@ Output:
 
 ## CLI Usage
 ```txt
-sineart 1.1.0
+sineart 1.1.2
 Plots images as sinewave art, inspired by /u/tfoust10's Reddit posts
 
 USAGE:
@@ -28,8 +28,8 @@ OPTIONS:
     -o, --output <OUTPUT>          Output image path. Defaults to $INPUT_sine.jpg
     -r, --rows <VCELLS>            Number of rows of sine waves [default: 50]
     -s, --scale <SCALE>            Percentage scaling of image resolution [default: 100]
-        --thickness <THICKNESS>    Thickness of line in pixels [default: 6]
+        --thickness <THICKNESS>    Thickness of line in pixels [default: 4]
         --threshold <THRESHOLD>    Threshold for white values, so sine waves do not end up
-                                   completely flat [default: 255]
+                                   completely flat [default: 200]
     -V, --version                  Print version information
 ```
