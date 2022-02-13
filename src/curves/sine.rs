@@ -20,6 +20,7 @@ enum SineQuadrant {
     Fourth,
 }
 
+/// A quarter of each sine wave, this is what is implemented as a Curve.
 struct QuarterSine {
     start: Point,
     stop: Point,
@@ -28,69 +29,12 @@ struct QuarterSine {
     quarter_wavelength: f64,
 }
 
+/// Entire sine wave, this is not implemented as a Curve, but rather drawn as a sum of its
+/// constituent quarters.
 pub struct Sine {
     start: Point,
     amplitude: u32,
     quarter_wavelength: u32,
-}
-
-pub struct SineWave {
-    start: Point,
-    amplitude: u32,
-    quarter_wavelength: u32,
-    num_oscillations: usize,
-}
-
-impl SineWave {
-    pub fn new(
-        start: Point,
-        amplitude: u32,
-        quarter_wavelength: u32,
-        num_oscillations: usize,
-    ) -> Self {
-        Self {
-            start,
-            amplitude,
-            quarter_wavelength,
-            num_oscillations,
-        }
-    }
-
-    pub fn stop(&self) -> Point {
-        Point::new(
-            self.start.x,
-            self.start.y + (self.num_oscillations as u32) * self.quarter_wavelength * 4,
-        )
-    }
-}
-
-impl Drawable for SineWave {
-    fn draw(&self, canvas: &mut impl XYDrawable) {
-        let mut sine = Sine::new(self.start, self.amplitude, self.quarter_wavelength);
-        sine.draw(canvas);
-        for _ in 0..self.num_oscillations {
-            sine = sine.next();
-            sine.draw(canvas);
-        }
-    }
-
-    fn draw_antialiased(&self, canvas: &mut impl XYDrawable) {
-        let mut sine = Sine::new(self.start, self.amplitude, self.quarter_wavelength);
-        sine.draw_antialiased(canvas);
-        for _ in 0..self.num_oscillations {
-            sine = sine.next();
-            sine.draw_antialiased(canvas);
-        }
-    }
-
-    fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32) {
-        let mut sine = Sine::new(self.start, self.amplitude, self.quarter_wavelength);
-        sine.draw_thick(canvas, thickness);
-        for _ in 0..self.num_oscillations {
-            sine = sine.next();
-            sine.draw_thick(canvas, thickness);
-        }
-    }
 }
 
 impl Sine {
@@ -100,16 +44,6 @@ impl Sine {
             amplitude,
             quarter_wavelength,
         }
-    }
-
-    /// Stopping point of the sine.
-    pub fn stop(&self) -> Point {
-        Point::new(self.start.x + 4 * self.quarter_wavelength, self.start.y)
-    }
-
-    /// Creates the next sine.
-    fn next(&self) -> Self {
-        Self::new(self.stop(), self.amplitude, self.quarter_wavelength)
     }
 
     /// Return the four comprising quarters.
@@ -150,12 +84,6 @@ impl Drawable for Sine {
         }
     }
 
-    fn draw_antialiased(&self, canvas: &mut impl XYDrawable) {
-        for quarter in self.quarters().iter() {
-            quarter.draw_antialiased(canvas);
-        }
-    }
-
     fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32) {
         for quarter in self.quarters().iter() {
             quarter.draw_thick(canvas, thickness);
@@ -165,7 +93,7 @@ impl Drawable for Sine {
 
 impl SineQuadrant {
     fn stop(&self, start: &Point, quarter_wavelength: u32, amplitude: u32) -> Point {
-        let mut dy = match self {
+        let dy = match self {
             SineQuadrant::First => amplitude as i32,
             SineQuadrant::Second => -(amplitude as i32),
             SineQuadrant::Third => -(amplitude as i32),
@@ -223,10 +151,6 @@ impl Curve for QuarterSine {
         &self.stop
     }
 
-    fn antialiased_threshold(&self) -> Self::T {
-        3.0 * PI / 2.0
-    }
-
     fn equation(&self, point: &Point) -> Self::T {
         self.equation_aux(
             point.x as i32 - self.start.x as i32,
@@ -239,14 +163,14 @@ impl Curve for QuarterSine {
 mod tests {
     use super::*;
     use crate::{
-        canvas::XYDrawable,
-        curves::{Canvas, Drawable},
+        canvas::{Canvas, XYDrawable},
+        curves::Drawable,
     };
 
     #[test]
     #[ignore = "visual check"]
     fn sine() {
-        let sinewave = SineWave::new(Point::new(0, 100), 50, 10, 8);
+        let sinewave = Sine::new(Point::new(0, 100), 50, 10);
         let mut img = Canvas::new([600; 2], [400; 2]);
         sinewave.draw(&mut img);
         img.save("test.bmp");

@@ -1,10 +1,44 @@
 pub mod lines;
 pub mod sine;
 
+use crate::canvas::XYDrawable;
 use num::{Signed, ToPrimitive};
 use std::fmt::Display;
 
-use crate::canvas::{Canvas, XYDrawable};
+/// Anything that is drawable onto a canvas.
+pub trait Drawable {
+    /// Draw a single, non-antialiased line of thickness 1.
+    fn draw(&self, canvas: &mut impl XYDrawable);
+
+    /// Draw a line of thickness `thickness`. The expansion is done on the horizontal axis.
+    fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32);
+}
+
+/// A line with a fixed gradient and direction, meaning the next possible pixel at each iteration
+/// can only be one of three options. E.g. for a curve starting at (0, 0) and ending at (10, 10),
+/// that has positive derivative at all points, the next possible options at every step will be
+/// (x + 1, y), (x, y + 1) or (x + 1, y + 1). The approach is taken from
+/// http://members.chello.at/%7Eeasyfilter/Bresenham.pdf.
+pub trait Curve {
+    /// Type to use in error functions, returned by equation etc.
+    type T: Signed + PartialOrd + ToPrimitive + Display + core::fmt::Debug;
+
+    fn start(&self) -> &Point;
+    fn stop(&self) -> &Point;
+
+    /// Implicit equation of curve, f(x, y) = 0.
+    fn equation(&self, point: &Point) -> Self::T;
+}
+
+/// Potential direction of the curve, a mixture of start and stop ordering and of the derivative
+/// value for its entire length.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Slope {
+    NorthEast,
+    SouthEast,
+    SouthWest,
+    NorthWest,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Point {
@@ -16,22 +50,6 @@ impl Point {
     pub fn new(x: u32, y: u32) -> Self {
         Self { x, y }
     }
-}
-
-pub trait Drawable {
-    fn draw(&self, canvas: &mut impl XYDrawable);
-
-    fn draw_antialiased(&self, canvas: &mut impl XYDrawable);
-
-    fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32);
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Slope {
-    NorthEast,
-    SouthEast,
-    SouthWest,
-    NorthWest,
 }
 
 impl Slope {
@@ -62,6 +80,7 @@ impl Slope {
         }
     }
 
+    /// Determines the slope type, assuming the derivative does not change sign.
     fn between(start: &Point, stop: &Point) -> Self {
         if start.x < stop.x {
             if start.y < stop.y {
@@ -73,34 +92,6 @@ impl Slope {
             Slope::NorthWest
         } else {
             Slope::SouthWest
-        }
-    }
-}
-
-pub trait Curve {
-    /// Type to use in error functions, returned by equation etc.
-    type T: Signed + PartialOrd + ToPrimitive + Display + core::fmt::Debug;
-
-    fn start(&self) -> &Point;
-    fn stop(&self) -> &Point;
-
-    /// Implicit equation of curve, f(x, y) = 0.
-    fn equation(&self, point: &Point) -> Self::T;
-
-    /// Threshold for anti-aliasing, will set lines to 255 * equation(p) / threshold.
-    fn antialiased_threshold(&self) -> Self::T;
-
-    /// Value to set pixel to when using anti-aliasing.
-    fn antialiased_value(&self, point: &Point) -> u8 {
-        let value = self.equation(point).abs();
-        let threshold = self.antialiased_threshold();
-        if value > threshold {
-            255
-        } else {
-            (value.to_u32().expect("could not convert value to u32") * 255
-                / threshold
-                    .to_u32()
-                    .expect("could not convert threshold to u32")) as u8
         }
     }
 }
@@ -121,33 +112,6 @@ impl<C: Curve> Drawable for C {
                 .expect("no viable next point found");
         }
         canvas.set_point(&current, 0);
-    }
-
-    fn draw_antialiased(&self, canvas: &mut impl XYDrawable) {
-        let mut current = *self.start();
-        let slope = Slope::between(self.start(), self.stop());
-
-        canvas.set_point(&current, self.antialiased_value(&current));
-
-        while &current != self.stop() {
-            let next = slope.next(&current);
-
-            // println!(
-            //     "{:?}",
-            //     next.iter().map(|p| self.equation(p)).collect::<Vec<_>>()
-            // );
-
-            for p in next.iter() {
-                canvas.set_point(p, self.antialiased_value(p));
-            }
-            current = next
-                .into_iter()
-                .map(|p| (p, self.equation(&p).abs()))
-                .min_by(|(_, a), (_, b)| a.partial_cmp(b).expect("NaN encountered"))
-                .map(|(p, _)| p)
-                .expect("no viable next point found");
-        }
-        // println!("{}", self.antialiased_threshold());
     }
 
     fn draw_thick(&self, canvas: &mut impl XYDrawable, thickness: u32) {

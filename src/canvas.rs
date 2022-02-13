@@ -2,6 +2,7 @@ use crate::curves::Point;
 use image::{GrayImage, Luma};
 use std::path::Path;
 
+/// Anything that can be drawn on, in cartesian X, Y coordinates.
 pub trait XYDrawable {
     /// Set cartesian (X, Y) coordinates: X == J and Y == -I.
     fn set_xy(&mut self, x: u32, y: u32, value: u8);
@@ -11,12 +12,10 @@ pub trait XYDrawable {
         self.set_xy(point.x, point.y, value);
     }
 
-    fn set_vertical_line(&mut self, point: &Point, value: u8, extent: u32) {
-        for y in point.y.saturating_sub(extent)..=point.y + extent {
-            self.set_xy(point.x, y, value)
-        }
-    }
-
+    /// Since the sine waves travel along the horizontal axis, we want to plot their thickness
+    /// horizontally. This ensures that for white pixels (i.e. A=0 => flat lines) there is no
+    /// increase in visibility, whereas for dark pixels (high amplitude), the sine wave has a
+    /// steeper slope and thus a thicker line.
     fn set_horizontal_line(&mut self, point: &Point, value: u8, extent: u32) {
         for x in point.x.saturating_sub(extent)..=point.x + extent {
             self.set_xy(x, point.y, value)
@@ -27,6 +26,7 @@ pub trait XYDrawable {
     fn save<P: AsRef<Path>>(&self, path: P);
 }
 
+/// Canvas with an inner image that is drawable, and a white border that will remain blank.
 #[derive(Debug, Clone)]
 pub struct Canvas {
     /// Full width of image, in pixels.

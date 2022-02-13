@@ -1,8 +1,9 @@
 [package]
 edition = "2021"
 name = "sineart"
-version = "0.1.0"
+version = "1.0.0"
 
 [dependencies]
+clap = {version = "3.0", features = ["derive"]}
 image = "0.24.0"
 num = "0.4"
